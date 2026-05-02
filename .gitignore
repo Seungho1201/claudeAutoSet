@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# 사용자 개인 설정 (절대경로/프롬프트 포함)
+claude_multi_launcher/config.json
+
+# Claude Code 세션 데이터
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
