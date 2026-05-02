@@ -159,6 +159,7 @@ def _spawn_wt_new_window(
     elif window_state == "fullscreen":
         args.append("--fullscreen")
 
+    n = len(instances)
     for idx, inst in enumerate(instances):
         if idx > 0:
             args.append(";")  # 서브커맨드 구분자
@@ -170,12 +171,15 @@ def _spawn_wt_new_window(
             sub = ["new-tab"]
         elif layout_mode == "tabs":
             sub = ["new-tab"]
-        elif layout_mode == "split_vertical":
-            # -V: 현재 패널의 오른쪽으로 새 패널 (세로 분할 = 좌우)
-            sub = ["split-pane", "-V"]
-        elif layout_mode == "split_horizontal":
-            # -H: 현재 패널의 아래쪽으로 새 패널 (가로 분할 = 상하)
-            sub = ["split-pane", "-H"]
+        elif layout_mode in ("split_vertical", "split_horizontal"):
+            # split-pane -V/-H 는 현재(=직전 분할로 새로 만든) 패널을 분할한다.
+            # 기본 -s 0.5로 연속 분할하면 첫 패널이 50%를 유지해 50/25/25... 가 된다.
+            # i번째 분할(i=idx, 1..N-1) 직전 활성 패널 폭은 (N-i+1)/N 이므로,
+            # 새 패널이 (N-i)/N 을 차지하도록 -s = (N-i)/(N-i+1) 을 주면
+            # 모든 패널이 정확히 1/N 폭으로 균등 분할된다.
+            direction = "-V" if layout_mode == "split_vertical" else "-H"
+            ratio = (n - idx) / (n - idx + 1)
+            sub = ["split-pane", direction, "-s", f"{ratio:.4f}"]
         else:
             sub = ["new-tab"]  # 알 수 없는 값은 안전하게 탭 모드로
 
