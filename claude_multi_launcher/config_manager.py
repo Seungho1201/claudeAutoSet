@@ -8,6 +8,7 @@ config.json 스키마:
         "working_directory": "C:/path/to/project",
         "layout_mode": "tabs" | "split_vertical" | "split_horizontal" | "separate",
         "window_state": "normal" | "maximized" | "fullscreen",
+        "language": "ko" | "en" | "ja",
         "instances": [ {name, role, system_prompt, initial_prompt, model, enabled}, ... ]
     }
 """
@@ -21,9 +22,10 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional
 
 
-# 레이아웃/창 상태 허용값 (validation용)
+# 레이아웃/창 상태/언어 허용값 (validation용)
 LAYOUT_MODES = ("tabs", "split_vertical", "split_horizontal", "separate")
 WINDOW_STATES = ("normal", "maximized", "fullscreen")
+LANGUAGES = ("ko", "en", "ja")
 
 
 @dataclass
@@ -68,6 +70,7 @@ class ConfigManager:
         self.working_directory: str = ""
         self.layout_mode: str = "tabs"
         self.window_state: str = "normal"
+        self.language: str = "ko"
         self.instances: List[Instance] = []
 
     # ---------------------------------------------------------------- I/O
@@ -82,6 +85,7 @@ class ConfigManager:
             self.working_directory = ""
             self.layout_mode = "tabs"
             self.window_state = "normal"
+            self.language = "ko"
             self.instances = []
             return self.instances
 
@@ -113,6 +117,13 @@ class ConfigManager:
         else:
             self.window_state = "normal"
 
+        # 언어 (없거나 잘못된 값이면 기본값 'ko')
+        lang = data.get("language")
+        if isinstance(lang, str) and lang in LANGUAGES:
+            self.language = lang
+        else:
+            self.language = "ko"
+
         # 전역 작업 폴더 결정
         wd = data.get("working_directory")
         if isinstance(wd, str) and wd.strip():
@@ -138,6 +149,7 @@ class ConfigManager:
             "working_directory": self.working_directory,
             "layout_mode": self.layout_mode,
             "window_state": self.window_state,
+            "language": self.language,
             "instances": [inst.to_dict() for inst in self.instances],
         }
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
@@ -164,6 +176,13 @@ class ConfigManager:
         self.window_state = state
         self.save()
 
+    def set_language(self, lang: str) -> None:
+        """UI 언어(ko/en/ja)를 설정하고 즉시 저장."""
+        if lang not in LANGUAGES:
+            raise ValueError(f"알 수 없는 language: {lang}")
+        self.language = lang
+        self.save()
+
     # ----------------------------------------------------------- CRUD API
     def add(self, instance: Instance) -> None:
         """새 인스턴스를 추가하고 즉시 저장."""
@@ -185,12 +204,13 @@ class ConfigManager:
         self.save()
 
     def duplicate(self, index: int) -> Instance:
-        """인스턴스를 복제하여 바로 뒤에 삽입. 이름 뒤에 ' (복사)' 접미사 부여."""
+        """인스턴스를 복제하여 바로 뒤에 삽입. 이름 뒤에 현재 언어의 '복사' 접미사 부여."""
         if not 0 <= index < len(self.instances):
             raise IndexError(f"잘못된 인스턴스 인덱스: {index}")
+        from i18n import t  # 순환 import 회피용 지연 import
         original = self.instances[index]
         copied = copy.deepcopy(original)
-        copied.name = f"{original.name} (복사)"
+        copied.name = f"{original.name}{t('copy_suffix')}"
         self.instances.insert(index + 1, copied)
         self.save()
         return copied

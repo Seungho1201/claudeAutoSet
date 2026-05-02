@@ -18,6 +18,7 @@ from typing import Optional
 import customtkinter as ctk
 
 from config_manager import Instance
+from i18n import t
 
 
 class InstanceDialog(ctk.CTkToplevel):
@@ -33,7 +34,7 @@ class InstanceDialog(ctk.CTkToplevel):
         self.is_edit_mode = instance is not None
         self.result: Optional[Instance] = None  # 저장 시 채워지고, 취소면 None 유지
 
-        title = "인스턴스 수정" if self.is_edit_mode else "새 인스턴스 추가"
+        title = t("dialog.title_edit") if self.is_edit_mode else t("dialog.title_add")
         self.title(title)
         self.geometry("640x640")
         self.minsize(560, 560)
@@ -57,23 +58,23 @@ class InstanceDialog(ctk.CTkToplevel):
         row = 0
 
         # --- 이름
-        ctk.CTkLabel(container, text="인스턴스 이름 *", anchor="w").grid(
+        ctk.CTkLabel(container, text=t("dialog.name"), anchor="w").grid(
             row=row, column=0, sticky="ew", pady=(0, 4))
         row += 1
-        self.name_entry = ctk.CTkEntry(container, placeholder_text="예: 프론트엔드 담당")
+        self.name_entry = ctk.CTkEntry(container, placeholder_text=t("dialog.name_placeholder"))
         self.name_entry.grid(row=row, column=0, sticky="ew", pady=(0, 12))
         row += 1
 
         # --- 역할
-        ctk.CTkLabel(container, text="역할", anchor="w").grid(
+        ctk.CTkLabel(container, text=t("dialog.role"), anchor="w").grid(
             row=row, column=0, sticky="ew", pady=(0, 4))
         row += 1
-        self.role_entry = ctk.CTkEntry(container, placeholder_text="예: React 개발자")
+        self.role_entry = ctk.CTkEntry(container, placeholder_text=t("dialog.role_placeholder"))
         self.role_entry.grid(row=row, column=0, sticky="ew", pady=(0, 12))
         row += 1
 
         # --- 시스템 프롬프트
-        ctk.CTkLabel(container, text="시스템 프롬프트 (--append-system-prompt)", anchor="w").grid(
+        ctk.CTkLabel(container, text=t("dialog.system_prompt"), anchor="w").grid(
             row=row, column=0, sticky="ew", pady=(0, 4))
         row += 1
         self.system_prompt_text = ctk.CTkTextbox(container, height=160, wrap="word")
@@ -81,7 +82,7 @@ class InstanceDialog(ctk.CTkToplevel):
         row += 1
 
         # --- 초기 프롬프트
-        ctk.CTkLabel(container, text="초기 작업 지시 프롬프트", anchor="w").grid(
+        ctk.CTkLabel(container, text=t("dialog.initial_prompt"), anchor="w").grid(
             row=row, column=0, sticky="ew", pady=(0, 4))
         row += 1
         self.initial_prompt_text = ctk.CTkTextbox(container, height=160, wrap="word")
@@ -89,25 +90,25 @@ class InstanceDialog(ctk.CTkToplevel):
         row += 1
 
         # --- 모델 (선택)
-        ctk.CTkLabel(container, text="모델 (선택사항, 비우면 기본값)", anchor="w").grid(
+        ctk.CTkLabel(container, text=t("dialog.model"), anchor="w").grid(
             row=row, column=0, sticky="ew", pady=(0, 4))
         row += 1
         self.model_entry = ctk.CTkEntry(
-            container, placeholder_text="예: claude-opus-4-7 / claude-sonnet-4-6")
+            container, placeholder_text=t("dialog.model_placeholder"))
         self.model_entry.grid(row=row, column=0, sticky="ew", pady=(0, 12))
         row += 1
 
         # --- 활성화
         self.enabled_var = ctk.BooleanVar(value=True)
         self.enabled_check = ctk.CTkCheckBox(
-            container, text="실행 시 포함 (활성화)", variable=self.enabled_var)
+            container, text=t("dialog.enabled"), variable=self.enabled_var)
         self.enabled_check.grid(row=row, column=0, sticky="w", pady=(4, 12))
         row += 1
 
         # 안내 문구
         info = ctk.CTkLabel(
             container,
-            text="※ 작업 폴더는 메인 화면 상단에서 모든 인스턴스 공통으로 설정합니다.",
+            text=t("dialog.workdir_note"),
             text_color=("gray35", "gray65"), anchor="w",
         )
         info.grid(row=row, column=0, sticky="ew", pady=(0, 8))
@@ -119,10 +120,12 @@ class InstanceDialog(ctk.CTkToplevel):
         button_bar = ctk.CTkFrame(self, fg_color="transparent")
         button_bar.pack(fill="x", padx=16, pady=12)
         ctk.CTkButton(
-            button_bar, text="취소", width=110, fg_color="gray40",
+            button_bar, text=t("dialog.cancel"), width=110, fg_color="gray40",
             hover_color="gray30", command=self._on_cancel,
         ).pack(side="right", padx=(8, 0))
-        ctk.CTkButton(button_bar, text="저장", width=110, command=self._on_save).pack(side="right")
+        ctk.CTkButton(
+            button_bar, text=t("dialog.save"), width=110, command=self._on_save,
+        ).pack(side="right")
 
     # --------------------------------------------------------- 기존 값 채우기
     def _populate(self, instance: Instance) -> None:
@@ -139,7 +142,11 @@ class InstanceDialog(ctk.CTkToplevel):
         """폼 검증 후 self.result에 Instance를 채우고 창을 닫는다."""
         name = self.name_entry.get().strip()
         if not name:
-            messagebox.showwarning("입력 오류", "인스턴스 이름은 필수입니다.", parent=self)
+            messagebox.showwarning(
+                t("dialog.name_required_title"),
+                t("dialog.name_required_body"),
+                parent=self,
+            )
             return
 
         self.result = Instance(

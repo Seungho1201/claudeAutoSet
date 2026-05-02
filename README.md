@@ -8,6 +8,7 @@
 - **작업 폴더는 앱 상단에서 한 번만 지정** → 모든 인스턴스가 그 폴더에서 시작
 - Windows Terminal에서 **탭 / 세로 분할 / 가로 분할 / 별창** 레이아웃 선택
 - 분할 시 인스턴스 수에 맞춰 **1/N 균등 폭**으로 자동 분할
+- **다국어 UI**: 한국어 / English / 日本語 (⚙ 설정 패널에서 즉시 전환)
 - Windows / macOS / Linux 지원
 
 > 자세한 옵션·트러블슈팅은
@@ -81,13 +82,19 @@ python main.py
 - **▶ 작업 시작** — 활성화된(체크된) 모든 인스턴스를 새 터미널에서 일괄 실행
 - **■ 전체 종료** — 실행 중인 모든 `claude` 프로세스 강제 종료
 
+### 5) 언어 전환 (한국어 / English / 日本語)
+헤더 우측의 **⚙ 설정** 버튼을 누르면 **하단에 설정 패널**이 펼쳐집니다.
+패널에서 언어를 선택하면 모든 UI 텍스트가 즉시 해당 언어로 갱신되고,
+`config.json`의 `language` 필드(`ko` / `en` / `ja`)에 저장되어 다음 실행에도 유지됩니다.
+앱 재시작은 필요하지 않습니다.
+
 각 터미널에서는 다음 명령이 실행됩니다.
 ```
 cd "{working_directory}" && claude --append-system-prompt "{system_prompt}" "{initial_prompt}"
 ```
 모델을 지정한 경우 `--model "{model}"`이 추가됩니다.
 
-### 5) 실행된 wt 창 안에서 — 패널 크기·포커스 단축키
+### 6) 실행된 wt 창 안에서 — 패널 크기·포커스 단축키
 
 Windows Terminal은 마우스로 패널 크기를 못 줄입니다. 키보드를 사용하세요.
 
@@ -108,6 +115,9 @@ Windows Terminal은 마우스로 패널 크기를 못 줄입니다. 키보드를
 ```json
 {
   "working_directory": "C:\\path\\to\\project",
+  "layout_mode": "tabs",
+  "window_state": "normal",
+  "language": "ko",
   "instances": [
     {
       "name": "프론트엔드 담당",
@@ -120,6 +130,8 @@ Windows Terminal은 마우스로 패널 크기를 못 줄입니다. 키보드를
   ]
 }
 ```
+
+`language`는 `"ko"` / `"en"` / `"ja"` 중 하나이며 ⚙ 설정 패널에서 변경됩니다.
 
 > 구버전(`working_directory`가 인스턴스마다 들어 있던 형식)은 첫 실행 시 자동으로
 > 새 형식으로 마이그레이션됩니다.
@@ -145,10 +157,11 @@ Windows Terminal은 마우스로 패널 크기를 못 줄입니다. 키보드를
 claudeAutoSet/
 ├── README.md                          # 이 파일 (GitHub 진입점)
 └── claude_multi_launcher/
-    ├── main.py                        # 진입점 + 메인 GUI
+    ├── main.py                        # 진입점 + 메인 GUI (설정 패널 포함)
     ├── instance_dialog.py             # 인스턴스 추가/수정 다이얼로그
     ├── launcher.py                    # OS별 터미널 실행 로직
     ├── config_manager.py              # 설정 파일 입출력 + 데이터 모델
+    ├── i18n.py                        # 다국어(ko/en/ja) 번역 테이블
     ├── config.json                    # 설정 파일 (최초 실행 시 자동 생성)
     ├── requirements.txt
     └── README.md                      # 자세한 문서
