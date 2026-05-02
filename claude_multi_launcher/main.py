@@ -173,6 +173,66 @@ class App(ctk.CTk):
             command=self._browse_workdir,
         ).grid(row=0, column=2, padx=(0, 12), pady=10)
 
+        # ---- 레이아웃 / 창 상태 옵션 바 (Windows Terminal 한정)
+        layout_bar = ctk.CTkFrame(self, corner_radius=8)
+        layout_bar.pack(fill="x", padx=16, pady=(8, 0))
+
+        ctk.CTkLabel(
+            layout_bar, text="레이아웃",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        ).grid(row=0, column=0, padx=(12, 8), pady=10, sticky="w")
+
+        # 표시용 한글 ↔ 내부 키 매핑
+        self._layout_display_to_key = {
+            "탭으로 (한 창)": "tabs",
+            "세로 분할 (좌우)": "split_vertical",
+            "가로 분할 (상하)": "split_horizontal",
+            "각각 별창": "separate",
+        }
+        self._layout_key_to_display = {v: k for k, v in self._layout_display_to_key.items()}
+
+        self.layout_menu = ctk.CTkOptionMenu(
+            layout_bar,
+            values=list(self._layout_display_to_key.keys()),
+            width=180,
+            command=self._on_layout_change,
+        )
+        self.layout_menu.set(
+            self._layout_key_to_display.get(self.config_manager.layout_mode, "탭으로 (한 창)")
+        )
+        self.layout_menu.grid(row=0, column=1, padx=(0, 16), pady=10, sticky="w")
+
+        ctk.CTkLabel(
+            layout_bar, text="창 상태",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        ).grid(row=0, column=2, padx=(0, 8), pady=10, sticky="w")
+
+        self._wstate_display_to_key = {
+            "기본": "normal",
+            "최대화": "maximized",
+            "전체화면": "fullscreen",
+        }
+        self._wstate_key_to_display = {v: k for k, v in self._wstate_display_to_key.items()}
+
+        self.wstate_menu = ctk.CTkOptionMenu(
+            layout_bar,
+            values=list(self._wstate_display_to_key.keys()),
+            width=120,
+            command=self._on_wstate_change,
+        )
+        self.wstate_menu.set(
+            self._wstate_key_to_display.get(self.config_manager.window_state, "기본")
+        )
+        self.wstate_menu.grid(row=0, column=3, padx=(0, 12), pady=10, sticky="w")
+
+        # 우측 안내
+        ctk.CTkLabel(
+            layout_bar,
+            text="※ 분할/창 상태는 Windows Terminal(wt)이 설치된 경우에만 적용됩니다.",
+            text_color=("gray35", "gray65"), font=ctk.CTkFont(size=11),
+        ).grid(row=0, column=4, padx=(0, 12), pady=10, sticky="e")
+        layout_bar.grid_columnconfigure(4, weight=1)
+
         # ---- 큰 작업시작 버튼 + 보조 버튼들
         action_bar = ctk.CTkFrame(self, fg_color="transparent")
         action_bar.pack(fill="x", padx=16, pady=(12, 0))
@@ -419,6 +479,19 @@ class App(ctk.CTk):
             self.config_manager.set_working_directory(chosen)
             self._log(f"작업 폴더 변경: {chosen}")
 
+    # -------------------------------------------------- 레이아웃 / 창 상태
+    def _on_layout_change(self, display_value: str) -> None:
+        """레이아웃 드롭다운 변경 → 즉시 저장."""
+        key = self._layout_display_to_key.get(display_value, "tabs")
+        self.config_manager.set_layout_mode(key)
+        self._log(f"레이아웃 변경: {display_value}")
+
+    def _on_wstate_change(self, display_value: str) -> None:
+        """창 상태 드롭다운 변경 → 즉시 저장."""
+        key = self._wstate_display_to_key.get(display_value, "normal")
+        self.config_manager.set_window_state(key)
+        self._log(f"창 상태 변경: {display_value}")
+
     # ---------------------------------------------------------------- 실행/종료
     def _on_start(self) -> None:
         """작업 시작 — 활성 인스턴스를 모두 실행."""
@@ -460,9 +533,15 @@ class App(ctk.CTk):
         ):
             return
 
-        self._log(f"━━ {len(targets)}개 인스턴스 실행 시작 (폴더: {workdir}) ━━")
+        layout = self.config_manager.layout_mode
+        wstate = self.config_manager.window_state
+        self._log(
+            f"━━ {len(targets)}개 인스턴스 실행 시작 "
+            f"(폴더: {workdir} · 레이아웃: {layout} · 창: {wstate}) ━━"
+        )
         results: List[LaunchResult] = launch_all(
             self.config_manager.instances, workdir,
+            layout_mode=layout, window_state=wstate,
         )
         success_count = sum(1 for r in results if r.success)
         for r in results:

@@ -6,6 +6,8 @@
 config.json 스키마:
     {
         "working_directory": "C:/path/to/project",
+        "layout_mode": "tabs" | "split_vertical" | "split_horizontal" | "separate",
+        "window_state": "normal" | "maximized" | "fullscreen",
         "instances": [ {name, role, system_prompt, initial_prompt, model, enabled}, ... ]
     }
 """
@@ -17,6 +19,11 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from typing import List, Optional
+
+
+# 레이아웃/창 상태 허용값 (validation용)
+LAYOUT_MODES = ("tabs", "split_vertical", "split_horizontal", "separate")
+WINDOW_STATES = ("normal", "maximized", "fullscreen")
 
 
 @dataclass
@@ -59,6 +66,8 @@ class ConfigManager:
             config_path = os.path.join(base_dir, "config.json")
         self.config_path: str = config_path
         self.working_directory: str = ""
+        self.layout_mode: str = "tabs"
+        self.window_state: str = "normal"
         self.instances: List[Instance] = []
 
     # ---------------------------------------------------------------- I/O
@@ -71,6 +80,8 @@ class ConfigManager:
         """
         if not os.path.exists(self.config_path):
             self.working_directory = ""
+            self.layout_mode = "tabs"
+            self.window_state = "normal"
             self.instances = []
             return self.instances
 
@@ -88,6 +99,19 @@ class ConfigManager:
         # 인스턴스 복원 (구버전 working_directory 필드는 from_dict가 무시함)
         raw_list = data.get("instances", [])
         self.instances = [Instance.from_dict(item) for item in raw_list]
+
+        # 레이아웃/창 상태 (없으면 기본값 유지)
+        layout = data.get("layout_mode")
+        if isinstance(layout, str) and layout in LAYOUT_MODES:
+            self.layout_mode = layout
+        else:
+            self.layout_mode = "tabs"
+
+        wstate = data.get("window_state")
+        if isinstance(wstate, str) and wstate in WINDOW_STATES:
+            self.window_state = wstate
+        else:
+            self.window_state = "normal"
 
         # 전역 작업 폴더 결정
         wd = data.get("working_directory")
@@ -112,6 +136,8 @@ class ConfigManager:
         """현재 상태(전역 작업 폴더 + 인스턴스들)를 config.json에 저장."""
         payload = {
             "working_directory": self.working_directory,
+            "layout_mode": self.layout_mode,
+            "window_state": self.window_state,
             "instances": [inst.to_dict() for inst in self.instances],
         }
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
@@ -122,6 +148,20 @@ class ConfigManager:
     def set_working_directory(self, path: str) -> None:
         """전역 작업 디렉토리를 설정하고 즉시 저장한다."""
         self.working_directory = (path or "").strip()
+        self.save()
+
+    def set_layout_mode(self, mode: str) -> None:
+        """레이아웃 모드를 설정하고 즉시 저장."""
+        if mode not in LAYOUT_MODES:
+            raise ValueError(f"알 수 없는 layout_mode: {mode}")
+        self.layout_mode = mode
+        self.save()
+
+    def set_window_state(self, state: str) -> None:
+        """창 상태(normal/maximized/fullscreen)를 설정하고 즉시 저장."""
+        if state not in WINDOW_STATES:
+            raise ValueError(f"알 수 없는 window_state: {state}")
+        self.window_state = state
         self.save()
 
     # ----------------------------------------------------------- CRUD API
